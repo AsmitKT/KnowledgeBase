@@ -6,3 +6,4 @@ __pycache__
 /datasets/scifact/*
 /datasets/situatedQA/*
 /datasets/normalized_datasets/*
+!.gitkeep
