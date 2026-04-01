@@ -104,28 +104,29 @@ Unless otherwise required by the original dataset:
 ## 4. Source Directory Layout
 
 ```text
-├── cisi
+datasets/
+├── cisi/
 │   ├── CISI.ALL
 │   ├── CISI.QRY
 │   └── CISI.REL
-├── dbpedia-entity
-│   ├── qrels
+├── dbpedia-entity/
+│   ├── qrels/
 │   │   ├── dev.tsv
 │   │   └── test.tsv
 │   ├── corpus.jsonl
 │   └── queries.jsonl
-├── nq
-│   ├── qrels
+├── nq/
+│   ├── qrels/
 │   │   └── test.tsv
 │   ├── corpus.jsonl
 │   └── queries.jsonl
-├── scifact
-│   ├── qrels
+├── scifact/
+│   ├── qrels/
 │   │   ├── test.tsv
 │   │   └── train.tsv
 │   ├── corpus.jsonl
 │   └── queries.jsonl
-└── situatedQA/qa_data
+└── situatedQA/qa_data/
     ├── geo.dev.jsonl
     ├── geo.test.jsonl
     ├── geo.train.jsonl
@@ -678,44 +679,50 @@ This is optional and used only for implementation convenience.
 A normalized project layout may look like this:
 
 ```text
-normalized_datasets/
-├── nq/
-│   ├── corpus.jsonl
-│   ├── queries.jsonl
-│   └── qrels/
-│       ├── dev.tsv
-│       └── test.tsv
-├── scifact/
-│   ├── corpus.jsonl
-│   ├── queries.jsonl
-│   └── qrels/
-│       ├── dev.tsv
-│       └── test.tsv
-├── dbpedia-entity/
-│   ├── corpus.jsonl
-│   ├── queries.jsonl
-│   └── qrels/
-│       ├── dev.tsv
-│       └── test.tsv
-├── cisi/
-│   ├── corpus.jsonl
-│   ├── queries.jsonl
-│   └── qrels/
-│       ├── dev.tsv
-│       ├── test.tsv
-│       └── edges.jsonl
-├── situatedqa-geo/
-│   ├── corpus.jsonl
-│   ├── queries.jsonl
-│   └── qrels/
-│       ├── dev.tsv
-│       └── test.tsv
-└── situatedqa-temp/
-    ├── corpus.jsonl
-    ├── queries.jsonl
-│   └── qrels/
-│       ├── dev.tsv
-│       └── test.tsv
+datasets/
+├──normalized_datasets/
+│   ├── nq/
+│   │   ├── corpus.jsonl
+│   │   ├── queries.jsonl
+│   │   └── qrels/
+│   │       ├── dev.tsv
+│   │       └── test.tsv
+│   ├── scifact/
+│   │   ├── corpus.jsonl
+│   │   ├── queries.jsonl
+│   │   └── qrels/
+│   │       ├── dev.tsv
+│   │       └── test.tsv
+│   ├── dbpedia-entity/
+│   │   ├── corpus.jsonl
+│   │   ├── queries.jsonl
+│   │   └── qrels/
+│   │       ├── dev.tsv
+│   │       └── test.tsv
+│   ├── cisi/
+│   │   ├── corpus.jsonl
+│   │   ├── queries.jsonl
+│   │   └── qrels/
+│   │       ├── dev.tsv
+│   │       ├── test.tsv
+│   │       └── edges.jsonl
+│   ├── situatedqa-geo/
+│   │   ├── corpus.jsonl
+│   │   ├── queries.jsonl
+│   │   └── qrels/
+│   │       ├── dev.tsv
+│   │       └── test.tsv
+│   └── situatedqa-temp/
+│       ├── corpus.jsonl
+│       ├── queries.jsonl
+│       └── qrels/
+│           ├── dev.tsv
+│           └── test.tsv
+├──cisi/
+├──dbpedia-entity/
+├──nq/
+├──scifact/
+└──situatedQA/
 ```
 
 ---
