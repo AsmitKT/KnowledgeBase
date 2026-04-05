@@ -1,5 +1,4 @@
 from __future__ import annotations
-import argparse
 import csv
 import json
 import random
@@ -74,8 +73,6 @@ def iter_jsonl(path: Path) -> Iterator[dict]:
             yield row
 
 
-def read_jsonl(path: Path) -> list[dict]:
-    return list(iter_jsonl(path))
 
 
 def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
