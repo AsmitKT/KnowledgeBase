@@ -3,19 +3,46 @@ import argparse
 import csv
 import json
 import random
+import shutil
 from pathlib import Path
-from typing import Callable, Iterable, Iterator
+from typing import Iterable, Iterator
 
 ROOT = Path(__file__).resolve().parents[1]
+CONFIG_PATH = ROOT / "config.json"
+
+def copy_file(src: Path, dst: Path) -> None:
+    ensure_dir(dst.parent)
+    shutil.copy2(src, dst)
+
+def load_config() -> dict:
+    with CONFIG_PATH.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-def build_parser(default_input: str, default_output: str) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=Path, default=ROOT / default_input)
-    parser.add_argument("--output", type=Path, default=ROOT / default_output)
-    parser.add_argument("--dev-ratio", type=float, default=0.2)
-    parser.add_argument("--seed", type=int, default=42)
-    return parser
+def resolve_path(value: str) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return ROOT / path
+
+
+def get_dataset_config(name: str) -> dict:
+    config = load_config()
+    if name not in config["datasets"]:
+        raise KeyError(f"Dataset config '{name}' not found in {CONFIG_PATH}")
+    dataset = config["datasets"][name]
+    globals_cfg = config.get("globals", {})
+    result = {
+        "dev_ratio": dataset.get("dev_ratio", globals_cfg.get("dev_ratio", 0.2)),
+        "seed": dataset.get("seed", globals_cfg.get("seed", 42)),
+        "input": {},
+        "output": {}
+    }
+    for key, value in dataset.get("input", {}).items():
+        result["input"][key] = resolve_path(value)
+    for key, value in dataset.get("output", {}).items():
+        result["output"][key] = resolve_path(value)
+    return result
 
 
 def ensure_dir(path: Path) -> None:
@@ -35,18 +62,15 @@ def _first_non_ws_char(path: Path) -> str:
 def iter_jsonl(path: Path) -> Iterator[dict]:
     first = _first_non_ws_char(path)
     if first == "[":
-        raise ValueError(f"{path} looks like a JSON array, not JSONL. Convert it to one-object-per-line first.")
+        raise ValueError(f"{path} looks like a JSON array, not JSONL")
     with path.open("r", encoding="utf-8", errors="replace") as f:
         for line_number, line in enumerate(f, start=1):
             line = line.strip()
             if not line:
                 continue
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON in {path} at line {line_number}: {e}") from e
+            row = json.loads(line)
             if not isinstance(row, dict):
-                raise ValueError(f"Expected JSON object in {path} at line {line_number}, got {type(row).__name__}")
+                raise ValueError(f"Expected JSON object in {path} at line {line_number}")
             yield row
 
 
@@ -61,7 +85,7 @@ def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def transform_jsonl(input_path: Path, output_path: Path, normalizer: Callable[[dict], dict]) -> int:
+def transform_jsonl(input_path: Path, output_path: Path, normalizer) -> int:
     ensure_dir(output_path.parent)
     count = 0
     with output_path.open("w", encoding="utf-8", newline="") as out:
@@ -84,7 +108,7 @@ def normalize_corpus_record(row: dict) -> dict:
         "_id": str(row.get("_id", "")).strip(),
         "title": str(row.get("title", "")).strip(),
         "text": str(row.get("text", "")).strip(),
-        "metadata": normalize_metadata_value(row.get("metadata", {})),
+        "metadata": normalize_metadata_value(row.get("metadata", {}))
     }
 
 
@@ -92,12 +116,12 @@ def normalize_query_record(row: dict) -> dict:
     return {
         "_id": str(row.get("_id", "")).strip(),
         "text": str(row.get("text", "")).strip(),
-        "metadata": normalize_metadata_value(row.get("metadata", {})),
+        "metadata": normalize_metadata_value(row.get("metadata", {}))
     }
 
 
 def read_qrels(path: Path) -> list[tuple[str, str, str]]:
-    rows: list[tuple[str, str, str]] = []
+    rows = []
     with path.open("r", encoding="utf-8", newline="") as f:
         sample = f.read(4096)
         f.seek(0)
@@ -125,12 +149,8 @@ def read_qrels(path: Path) -> list[tuple[str, str, str]]:
             qid, cid, score = cells[0], cells[1], "1"
         else:
             continue
-        try:
-            if float(score) <= 0:
-                continue
-        except ValueError:
-            continue
-        rows.append((str(qid), str(cid), str(score)))
+        if float(score) > 0:
+            rows.append((str(qid), str(cid), str(score)))
     return rows
 
 
@@ -147,8 +167,6 @@ def sample_dev_from_qrels(rows: list[tuple[str, str, str]], ratio: float, seed: 
     if not rows:
         return []
     query_ids = sorted({qid for qid, _, _ in rows})
-    if not query_ids:
-        return []
     count = max(1, int(round(len(query_ids) * ratio)))
     count = min(count, len(query_ids))
     rng = random.Random(seed)

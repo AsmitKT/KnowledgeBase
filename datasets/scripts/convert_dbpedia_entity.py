@@ -1,17 +1,15 @@
 from __future__ import annotations
-from _common import build_parser, normalize_corpus_record, normalize_query_record, read_qrels, transform_jsonl, write_qrels
+from _common import get_dataset_config, normalize_corpus_record, normalize_query_record, read_qrels, transform_jsonl, write_qrels
 
 
 def main() -> None:
-    parser = build_parser("dbpedia-entity", "normalized_datasets/dbpedia-entity")
-    args = parser.parse_args()
-    transform_jsonl(args.input / "corpus.jsonl", args.output / "corpus.jsonl", normalize_corpus_record)
-    transform_jsonl(args.input / "queries.jsonl", args.output / "queries.jsonl", normalize_query_record)
-    dev_qrels = read_qrels(args.input / "qrels" / "dev.tsv")
-    test_qrels = read_qrels(args.input / "qrels" / "test.tsv")
-    qrels_dir = args.output / "qrels"
-    write_qrels(qrels_dir / "dev.tsv", dev_qrels)
-    write_qrels(qrels_dir / "test.tsv", test_qrels)
+    cfg = get_dataset_config("dbpedia_entity")
+    dev_qrels = read_qrels(cfg["input"]["dev_qrels"])
+    test_qrels = read_qrels(cfg["input"]["test_qrels"])
+    transform_jsonl(cfg["input"]["corpus"], cfg["output"]["corpus"], normalize_corpus_record)
+    transform_jsonl(cfg["input"]["queries"], cfg["output"]["queries"], normalize_query_record)
+    write_qrels(cfg["output"]["dev_qrels"], dev_qrels)
+    write_qrels(cfg["output"]["test_qrels"], test_qrels)
 
 
 if __name__ == "__main__":
