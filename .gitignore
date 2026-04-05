@@ -1,0 +1,9 @@
+__pycache__
+/test
+/datasets/cisi/*
+/datasets/nq/*
+/datasets/dbpedia-entity/*
+/datasets/scifact/*
+/datasets/situatedQA/*
+/datasets/normalized_datasets/*
+!.gitkeep

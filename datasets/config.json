@@ -1,0 +1,90 @@
+{
+  "globals": {
+    "dev_ratio": 0.2,
+    "seed": 42
+  },
+  "run_order": [
+    "nq",
+    "scifact",
+    "dbpedia_entity",
+    "cisi",
+    "situatedqa"
+  ],
+  "datasets": {
+    "nq": {
+      "input": {
+        "corpus": "nq/corpus.jsonl",
+        "queries": "nq/queries.jsonl",
+        "test_qrels": "nq/qrels/test.tsv"
+      },
+      "output": {
+        "corpus": "normalized_datasets/nq/corpus.jsonl",
+        "queries": "normalized_datasets/nq/queries.jsonl",
+        "dev_qrels": "normalized_datasets/nq/qrels/dev.tsv",
+        "test_qrels": "normalized_datasets/nq/qrels/test.tsv"
+      }
+    },
+    "scifact": {
+      "input": {
+        "corpus": "scifact/corpus.jsonl",
+        "queries": "scifact/queries.jsonl",
+        "source_dev_qrels": "scifact/qrels/test.tsv",
+        "source_test_qrels": "scifact/qrels/train.tsv"
+      },
+      "output": {
+        "corpus": "normalized_datasets/scifact/corpus.jsonl",
+        "queries": "normalized_datasets/scifact/queries.jsonl",
+        "dev_qrels": "normalized_datasets/scifact/qrels/dev.tsv",
+        "test_qrels": "normalized_datasets/scifact/qrels/test.tsv"
+      }
+    },
+    "dbpedia_entity": {
+      "input": {
+        "corpus": "dbpedia-entity/corpus.jsonl",
+        "queries": "dbpedia-entity/queries.jsonl",
+        "dev_qrels": "dbpedia-entity/qrels/dev.tsv",
+        "test_qrels": "dbpedia-entity/qrels/test.tsv"
+      },
+      "output": {
+        "corpus": "normalized_datasets/dbpedia-entity/corpus.jsonl",
+        "queries": "normalized_datasets/dbpedia-entity/queries.jsonl",
+        "dev_qrels": "normalized_datasets/dbpedia-entity/qrels/dev.tsv",
+        "test_qrels": "normalized_datasets/dbpedia-entity/qrels/test.tsv"
+      }
+    },
+    "cisi": {
+      "input": {
+        "corpus_source": "cisi/CISI.ALL",
+        "queries_source": "cisi/CISI.QRY",
+        "qrels_source": "cisi/CISI.REL"
+      },
+      "output": {
+        "corpus": "normalized_datasets/cisi/corpus.jsonl",
+        "queries": "normalized_datasets/cisi/queries.jsonl",
+        "edges": "normalized_datasets/cisi/edges.jsonl",
+        "dev_qrels": "normalized_datasets/cisi/qrels/dev.tsv",
+        "test_qrels": "normalized_datasets/cisi/qrels/test.tsv"
+      }
+    },
+    "situatedqa": {
+      "input": {
+        "geo_train": "situatedQA/qa_data/geo.train.jsonl",
+        "geo_dev": "situatedQA/qa_data/geo.dev.jsonl",
+        "geo_test": "situatedQA/qa_data/geo.test.jsonl",
+        "temp_train": "situatedQA/qa_data/temp.train.jsonl",
+        "temp_dev": "situatedQA/qa_data/temp.dev.jsonl",
+        "temp_test": "situatedQA/qa_data/temp.test.jsonl"
+      },
+      "output": {
+        "geo_corpus": "normalized_datasets/situatedqa-geo/corpus.jsonl",
+        "geo_queries": "normalized_datasets/situatedqa-geo/queries.jsonl",
+        "geo_dev_qrels": "normalized_datasets/situatedqa-geo/qrels/dev.tsv",
+        "geo_test_qrels": "normalized_datasets/situatedqa-geo/qrels/test.tsv",
+        "temp_corpus": "normalized_datasets/situatedqa-temp/corpus.jsonl",
+        "temp_queries": "normalized_datasets/situatedqa-temp/queries.jsonl",
+        "temp_dev_qrels": "normalized_datasets/situatedqa-temp/qrels/dev.tsv",
+        "temp_test_qrels": "normalized_datasets/situatedqa-temp/qrels/test.tsv"
+      }
+    }
+  }
+}
