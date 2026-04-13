@@ -42,9 +42,7 @@ def build_geo_rows(rows):
             "text": edited_question,
             "metadata": {"location": location, "source_id": source_id}
         })
-        if row["_split"] == "dev":
-            dev_qrels.append((local_id, local_id, "1"))
-        elif row["_split"] == "test":
+        if row["_split"] == "dev" or row["_split"] == "test":
             test_qrels.append((local_id, local_id, "1"))
     return corpus, queries, dev_qrels, test_qrels
 
@@ -53,7 +51,7 @@ def build_temp_rows(rows):
     queries = []
     dev_qrels = []
     test_qrels = []
-    for index, row in enumerate(rows, start=1):
+    for index, row in enumerate(rows, start=1000001):
         local_id = str(index)
         question = str(row.get("question", "")).strip()
         edited_question = str(row.get("edited_question", "") or question).strip()
@@ -77,16 +75,17 @@ def build_temp_rows(rows):
             "text": edited_question,
             "metadata": query_metadata
         })
-        if row["_split"] == "dev":
-            dev_qrels.append((local_id, local_id, "1"))
-        elif row["_split"] == "test":
+        if row["_split"] == "dev" or row["_split"] == "test":
             test_qrels.append((local_id, local_id, "1"))
     return corpus, queries, dev_qrels, test_qrels
 
 def write_dataset(corpus_path, queries_path, dev_qrels_path, test_qrels_path, corpus, queries, dev_qrels, test_qrels):
     write_jsonl(corpus_path, corpus)
     write_jsonl(queries_path, queries)
-    write_qrels(dev_qrels_path, dev_qrels)
+    if dev_qrels:
+        write_qrels(dev_qrels_path, dev_qrels)
+    elif dev_qrels_path.exists():
+        dev_qrels_path.unlink()
     write_qrels(test_qrels_path, test_qrels)
 
 def main() -> None:

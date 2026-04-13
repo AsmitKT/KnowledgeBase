@@ -1,6 +1,6 @@
 from __future__ import annotations
 import re
-from _common import clean_text, get_dataset_config, sample_dev_from_qrels, write_jsonl, write_qrels
+from _common import clean_text, get_dataset_config, write_jsonl, write_qrels
 
 def parse_tagged_records(path):
     records = []
@@ -90,11 +90,11 @@ def main() -> None:
     corpus, edges = parse_corpus(cfg["input"]["corpus_source"])
     queries = parse_queries(cfg["input"]["queries_source"])
     test_qrels = parse_rel(cfg["input"]["qrels_source"])
-    dev_qrels = sample_dev_from_qrels(test_qrels, cfg["dev_ratio"], cfg["seed"])
     write_jsonl(cfg["output"]["corpus"], corpus)
     write_jsonl(cfg["output"]["queries"], queries)
     write_jsonl(cfg["output"]["edges"], edges)
-    write_qrels(cfg["output"]["dev_qrels"], dev_qrels)
+    if cfg["output"]["dev_qrels"].exists():
+        cfg["output"]["dev_qrels"].unlink()
     write_qrels(cfg["output"]["test_qrels"], test_qrels)
 
 if __name__ == "__main__":
