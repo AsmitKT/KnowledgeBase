@@ -20,7 +20,6 @@
       "output": {
         "corpus": "normalized_datasets/nq/corpus.jsonl",
         "queries": "normalized_datasets/nq/queries.jsonl",
-        "dev_qrels": "normalized_datasets/nq/qrels/dev.tsv",
         "test_qrels": "normalized_datasets/nq/qrels/test.tsv"
       }
     },
@@ -34,7 +33,6 @@
       "output": {
         "corpus": "normalized_datasets/scifact/corpus.jsonl",
         "queries": "normalized_datasets/scifact/queries.jsonl",
-        "dev_qrels": "normalized_datasets/scifact/qrels/dev.tsv",
         "test_qrels": "normalized_datasets/scifact/qrels/test.tsv"
       }
     },
@@ -48,7 +46,6 @@
       "output": {
         "corpus": "normalized_datasets/dbpedia-entity/corpus.jsonl",
         "queries": "normalized_datasets/dbpedia-entity/queries.jsonl",
-        "dev_qrels": "normalized_datasets/dbpedia-entity/qrels/dev.tsv",
         "test_qrels": "normalized_datasets/dbpedia-entity/qrels/test.tsv"
       }
     },
@@ -62,7 +59,6 @@
         "corpus": "normalized_datasets/cisi/corpus.jsonl",
         "queries": "normalized_datasets/cisi/queries.jsonl",
         "edges": "normalized_datasets/cisi/edges.jsonl",
-        "dev_qrels": "normalized_datasets/cisi/qrels/dev.tsv",
         "test_qrels": "normalized_datasets/cisi/qrels/test.tsv"
       }
     },
@@ -78,11 +74,9 @@
       "output": {
         "geo_corpus": "normalized_datasets/situatedqa-geo/corpus.jsonl",
         "geo_queries": "normalized_datasets/situatedqa-geo/queries.jsonl",
-        "geo_dev_qrels": "normalized_datasets/situatedqa-geo/qrels/dev.tsv",
         "geo_test_qrels": "normalized_datasets/situatedqa-geo/qrels/test.tsv",
         "temp_corpus": "normalized_datasets/situatedqa-temp/corpus.jsonl",
         "temp_queries": "normalized_datasets/situatedqa-temp/queries.jsonl",
-        "temp_dev_qrels": "normalized_datasets/situatedqa-temp/qrels/dev.tsv",
         "temp_test_qrels": "normalized_datasets/situatedqa-temp/qrels/test.tsv"
       }
     }
