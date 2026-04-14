@@ -47,17 +47,16 @@ def save_json(path: Path, obj):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True, choices=sorted(DATASETS.keys()))
-    parser.add_argument("--split", required=True, choices=["dev", "test"])
     parser.add_argument("--backend", required=True, choices=["sentencebert", "huggingface"])
     parser.add_argument("--model_name", default=None)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--size", type=float, default=100.0)
     args = parser.parse_args()
 
+    split = "test"
     model_name = args.model_name or DEFAULT_MODELS[args.backend]
     corpus, queries, qrels, meta = prepare_dataset(
         dataset=args.dataset,
-        split=args.split,
         size_percent=args.size,
         fix_qrels_headers=False,
         seed=DEFAULT_RANDOM_SEED,
@@ -76,13 +75,13 @@ def main():
     run_dir.mkdir(parents=True, exist_ok=True)
     result_dir.mkdir(parents=True, exist_ok=True)
 
-    save_json(run_dir / f"{args.split}.results.json", results)
+    save_json(run_dir / f"{split}.results.json", results)
     summary = {
         "family": "dense",
         "backend": args.backend,
         "model_name": model_name,
         "dataset": args.dataset,
-        "split": args.split,
+        "split": split,
         "batch_size": args.batch_size,
         "size_percent": meta["size_percent"],
         "random_seed": meta["random_seed"],
@@ -96,10 +95,10 @@ def main():
         "MRR@10": mrr.get("MRR@10"),
         "P@10": precision.get("P@10"),
     }
-    save_json(result_dir / f"{args.split}.summary.json", summary)
+    save_json(result_dir / f"{split}.summary.json", summary)
 
-    save_runfile_utf8(run_dir / f"{args.split}.run.trec", results)
-    util.save_results(str(result_dir / f"{args.split}.json"), ndcg, _map, recall, precision, mrr)
+    save_runfile_utf8(run_dir / f"{split}.run.trec", results)
+    util.save_results(str(result_dir / f"{split}.json"), ndcg, _map, recall, precision, mrr)
 
 if __name__ == "__main__":
     main()

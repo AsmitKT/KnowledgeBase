@@ -16,7 +16,6 @@ DEFAULT_MODELS = {
     "huggingface": "intfloat/e5-base-v2",
 }
 
-
 def build_encoder(backend: str, model_name: str):
     if backend == "sentencebert":
         return models.SentenceBERT(model_name)
@@ -30,7 +29,6 @@ def build_encoder(backend: str, model_name: str):
         )
     raise ValueError(f"Unsupported dense backend: {backend}")
 
-
 def save_runfile_utf8(path: Path, results, run_name: str = "beir"):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
@@ -39,19 +37,16 @@ def save_runfile_utf8(path: Path, results, run_name: str = "beir"):
             for doc_id, score in ranked:
                 f.write(f"{str(qid)} Q0 {str(doc_id)} 0 {score} {run_name}\n")
 
-
 def save_json(path: Path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, indent=2)
-
 
 def to_numpy_float32(array) -> np.ndarray:
     arr = np.asarray(array, dtype=np.float32)
     if arr.ndim == 1:
         arr = arr.reshape(1, -1)
     return arr
-
 
 def encode_corpus_embeddings(encoder, documents, batch_size: int) -> np.ndarray:
     try:
@@ -60,14 +55,12 @@ def encode_corpus_embeddings(encoder, documents, batch_size: int) -> np.ndarray:
         embeddings = encoder.encode_corpus(documents)
     return to_numpy_float32(embeddings)
 
-
 def encode_query_embeddings(encoder, query_texts, batch_size: int) -> np.ndarray:
     try:
         embeddings = encoder.encode_queries(query_texts, batch_size=batch_size)
     except TypeError:
         embeddings = encoder.encode_queries(query_texts)
     return to_numpy_float32(embeddings)
-
 
 def build_hnsw_index(corpus_embeddings: np.ndarray, m: int, ef_construction: int, ef_search: int, num_threads: int, random_seed: int):
     try:
@@ -88,7 +81,6 @@ def build_hnsw_index(corpus_embeddings: np.ndarray, m: int, ef_construction: int
     index.add_items(corpus_embeddings, index_ids)
     index.set_ef(max(int(ef_search), 1))
     return index
-
 
 def hnsw_search(index, query_embeddings: np.ndarray, doc_ids, top_k: int):
     if query_embeddings.ndim != 2:
@@ -113,11 +105,9 @@ def hnsw_search(index, query_embeddings: np.ndarray, doc_ids, top_k: int):
         results[row_idx] = row_results
     return results
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True, choices=sorted(DATASETS.keys()))
-    parser.add_argument("--split", required=True, choices=["dev", "test"])
     parser.add_argument("--backend", required=True, choices=["sentencebert", "huggingface"])
     parser.add_argument("--model_name", default=None)
     parser.add_argument("--batch_size", type=int, default=16)
@@ -131,6 +121,7 @@ def main():
     parser.add_argument("--save_index", action="store_true")
     args = parser.parse_args()
 
+    split = "test"
     evaluator = EvaluateRetrieval(None)
     required_top_k = max(evaluator.k_values)
     if args.top_k < required_top_k:
@@ -139,7 +130,6 @@ def main():
     model_name = args.model_name or DEFAULT_MODELS[args.backend]
     corpus, queries, qrels, meta = prepare_dataset(
         dataset=args.dataset,
-        split=args.split,
         size_percent=args.size,
         fix_qrels_headers=False,
         seed=args.random_seed,
@@ -183,15 +173,15 @@ def main():
     run_dir.mkdir(parents=True, exist_ok=True)
     result_dir.mkdir(parents=True, exist_ok=True)
 
-    save_json(run_dir / f"{args.split}.results.json", results)
-    save_runfile_utf8(run_dir / f"{args.split}.run.trec", results)
-    util.save_results(str(result_dir / f"{args.split}.json"), ndcg, _map, recall, precision, mrr)
+    save_json(run_dir / f"{split}.results.json", results)
+    save_runfile_utf8(run_dir / f"{split}.run.trec", results)
+    util.save_results(str(result_dir / f"{split}.json"), ndcg, _map, recall, precision, mrr)
 
     index_path = None
     doc_ids_path = None
     if args.save_index:
-        index_path = run_dir / f"{args.split}.hnswlib.index"
-        doc_ids_path = run_dir / f"{args.split}.doc_ids.json"
+        index_path = run_dir / f"{split}.hnswlib.index"
+        doc_ids_path = run_dir / f"{split}.doc_ids.json"
         index.save_index(str(index_path))
         save_json(doc_ids_path, doc_ids)
 
@@ -200,7 +190,7 @@ def main():
         "backend": args.backend,
         "model_name": model_name,
         "dataset": args.dataset,
-        "split": args.split,
+        "split": split,
         "batch_size": args.batch_size,
         "size_percent": meta["size_percent"],
         "random_seed": args.random_seed,
@@ -222,8 +212,7 @@ def main():
         "MRR@10": mrr.get("MRR@10"),
         "P@10": precision.get("P@10"),
     }
-    save_json(result_dir / f"{args.split}.summary.json", summary)
-
+    save_json(result_dir / f"{split}.summary.json", summary)
 
 if __name__ == "__main__":
     main()

@@ -23,7 +23,7 @@ from beir.retrieval.evaluation import EvaluateRetrieval
 from beir.retrieval.models.unicoil import UniCoilEncoder
 from beir.retrieval.search import BaseSearch
 
-from config_paths import BENCH_ROOT
+from config_paths import BENCH_ROOT, DATASETS
 from dataset_runtime import DEFAULT_RANDOM_SEED, prepare_dataset
 from retrieval_runtime import run_full_or_chunked_search
 
@@ -120,17 +120,16 @@ def build_model(backend: str, model_name: str, batch_size: int):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", required=True)
-    parser.add_argument("--split", required=True, choices=["dev", "test"])
+    parser.add_argument("--dataset", required=True, choices=sorted(DATASETS.keys()))
     parser.add_argument("--backend", required=True, choices=["sparta", "splade", "unicoil"])
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--size", type=float, default=100.0)
     args = parser.parse_args()
 
+    split = "test"
     model_name = DEFAULT_MODELS[args.backend]
     corpus, queries, qrels, meta = prepare_dataset(
         dataset=args.dataset,
-        split=args.split,
         size_percent=args.size,
         fix_qrels_headers=False,
         seed=DEFAULT_RANDOM_SEED,
@@ -149,13 +148,13 @@ def main():
     run_dir.mkdir(parents=True, exist_ok=True)
     result_dir.mkdir(parents=True, exist_ok=True)
 
-    save_json(run_dir / f"{args.split}.results.json", results)
-    save_json(result_dir / f"{args.split}.summary.json", {
+    save_json(run_dir / f"{split}.results.json", results)
+    save_json(result_dir / f"{split}.summary.json", {
         "family": "sparse",
         "backend": args.backend,
         "model_name": model_name,
         "dataset": args.dataset,
-        "split": args.split,
+        "split": split,
         "batch_size": args.batch_size,
         "size_percent": meta["size_percent"],
         "random_seed": meta["random_seed"],
@@ -172,8 +171,8 @@ def main():
         "P@10": precision.get("P@10"),
     })
 
-    save_runfile_utf8(run_dir / f"{args.split}.run.trec", results)
-    util.save_results(str(result_dir / f"{args.split}.json"), ndcg, _map, recall, precision, mrr)
+    save_runfile_utf8(run_dir / f"{split}.run.trec", results)
+    util.save_results(str(result_dir / f"{split}.json"), ndcg, _map, recall, precision, mrr)
 
 if __name__ == "__main__":
     main()

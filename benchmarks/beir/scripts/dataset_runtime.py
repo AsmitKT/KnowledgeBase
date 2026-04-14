@@ -10,17 +10,13 @@ def ensure_qrels_headers(dataset_names=None):
     names = dataset_names if dataset_names is not None else DATASETS.keys()
     for dataset in names:
         dataset_path = DATASETS[dataset]
-        qrels_dir = dataset_path / "qrels"
-        if not qrels_dir.exists():
+        qrels_path = dataset_path / "qrels" / "test.tsv"
+        if not qrels_path.exists():
             continue
-        for split in ("dev.tsv", "test.tsv"):
-            path = qrels_dir / split
-            if not path.exists():
-                continue
-            text = path.read_text(encoding="utf-8")
-            stripped = text.lstrip()
-            if not stripped.lower().startswith("query_id\tcorpus_id\tscore"):
-                path.write_text(HEADER + text, encoding="utf-8")
+        text = qrels_path.read_text(encoding="utf-8")
+        stripped = text.lstrip()
+        if not stripped.lower().startswith("query_id\tcorpus_id\tscore"):
+            qrels_path.write_text(HEADER + text, encoding="utf-8")
 
 def load_jsonl_rows(path):
     rows = []
@@ -199,8 +195,8 @@ def compose_standard_text(text, metadata, inject_metadata):
         return f"metadata: {meta_text}\ntext: {base_text}"
     return f"metadata: {meta_text}"
 
-def load_dataset(dataset: str, split: str):
-    files = get_dataset_files(dataset, split)
+def load_dataset(dataset: str):
+    files = get_dataset_files(dataset)
     inject_metadata = dataset.startswith("situatedqa-")
     corpus_rows = load_jsonl_rows(files["corpus"])
     query_rows = load_jsonl_rows(files["queries"])
@@ -305,11 +301,11 @@ def sample_corpus_and_align(corpus, queries, qrels, size_percent: float, seed: i
 
     return sampled_corpus, sampled_queries, sampled_qrels, meta
 
-def prepare_dataset(dataset: str, split: str, size_percent: float = 100.0, fix_qrels_headers: bool = False, seed: int = DEFAULT_RANDOM_SEED):
+def prepare_dataset(dataset: str, size_percent: float = 100.0, fix_qrels_headers: bool = False, seed: int = DEFAULT_RANDOM_SEED):
     if fix_qrels_headers:
         ensure_qrels_headers([dataset])
 
-    corpus, queries, qrels = load_dataset(dataset, split)
+    corpus, queries, qrels = load_dataset(dataset)
     corpus, queries, qrels, meta = sample_corpus_and_align(corpus, queries, qrels, size_percent, seed)
 
     if len(corpus) == 0:
