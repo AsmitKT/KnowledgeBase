@@ -2,51 +2,53 @@ from __future__ import annotations
 import csv
 import json
 import random
-import shutil
 from pathlib import Path
 from typing import Iterable, Iterator
 
-ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "config.json"
+CONFIG_FILENAME = "datasets_config.json"
 
-def copy_file(src: Path, dst: Path) -> None:
-    ensure_dir(dst.parent)
-    shutil.copy2(src, dst)
+def _find_in_parents(filename: str, start_dir: Path) -> Path:
+    start_dir = start_dir.resolve()
+    for base in (start_dir, *start_dir.parents):
+        candidate = base / filename
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(f"Could not find {filename} starting from {start_dir}")
 
-def load_config() -> dict:
-    with CONFIG_PATH.open("r", encoding="utf-8") as f:
-        return json.load(f)
+_THIS_DIR = Path(__file__).resolve().parent
+_CONFIG_PATH = _find_in_parents(CONFIG_FILENAME, _THIS_DIR)
+_PROJECT_ROOT = _CONFIG_PATH.parent
 
+with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+    _CONFIG = json.load(f)
 
-def resolve_path(value: str) -> Path:
+def _resolve_path(value: str) -> Path:
     path = Path(value)
     if path.is_absolute():
         return path
-    return ROOT / path
+    return (_PROJECT_ROOT / path).resolve()
 
+def load_config():
+    return _CONFIG
 
-def get_dataset_config(name: str) -> dict:
-    config = load_config()
-    if name not in config["datasets"]:
-        raise KeyError(f"Dataset config '{name}' not found in {CONFIG_PATH}")
-    dataset = config["datasets"][name]
-    globals_cfg = config.get("globals", {})
-    result = {
-        "dev_ratio": dataset.get("dev_ratio", globals_cfg.get("dev_ratio", 0.2)),
-        "seed": dataset.get("seed", globals_cfg.get("seed", 42)),
-        "input": {},
-        "output": {}
+def get_dataset_config(dataset_name: str):
+    if dataset_name not in _CONFIG["datasets"]:
+        raise KeyError(f"Unknown dataset config: {dataset_name}")
+
+    dataset_cfg = _CONFIG["datasets"][dataset_name]
+    globals_cfg = _CONFIG.get("globals", {})
+
+    resolved = {
+        "globals": globals_cfg,
+        "input": {k: _resolve_path(v) for k, v in dataset_cfg.get("input", {}).items()},
+        "output": {k: _resolve_path(v) for k, v in dataset_cfg.get("output", {}).items()},
+        "dev_ratio": globals_cfg.get("dev_ratio"),
+        "seed": globals_cfg.get("seed")
     }
-    for key, value in dataset.get("input", {}).items():
-        result["input"][key] = resolve_path(value)
-    for key, value in dataset.get("output", {}).items():
-        result["output"][key] = resolve_path(value)
-    return result
-
+    return resolved
 
 def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
-
 
 def _first_non_ws_char(path: Path) -> str:
     with path.open("r", encoding="utf-8", errors="replace") as f:
@@ -71,9 +73,6 @@ def iter_jsonl(path: Path) -> Iterator[dict]:
             if not isinstance(row, dict):
                 raise ValueError(f"Expected JSON object in {path} at line {line_number}")
             yield row
-
-
-
 
 def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
     ensure_dir(path.parent)

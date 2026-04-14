@@ -6,8 +6,6 @@ def main() -> None:
     test_qrels = read_qrels(cfg["input"]["test_qrels"])
     copy_file(cfg["input"]["corpus"], cfg["output"]["corpus"])
     copy_file(cfg["input"]["queries"], cfg["output"]["queries"])
-    if cfg["output"]["dev_qrels"].exists():
-        cfg["output"]["dev_qrels"].unlink()
     write_qrels(cfg["output"]["test_qrels"], test_qrels)
 
 if __name__ == "__main__":

@@ -9,10 +9,7 @@ def main() -> None:
     merged_test_qrels = dev_qrels + test_qrels
     transform_jsonl(cfg["input"]["corpus"], cfg["output"]["corpus"], normalize_corpus_record)
     transform_jsonl(cfg["input"]["queries"], cfg["output"]["queries"], normalize_query_record)
-    if cfg["output"]["dev_qrels"].exists():
-        cfg["output"]["dev_qrels"].unlink()
     write_qrels(cfg["output"]["test_qrels"], merged_test_qrels)
-
 
 if __name__ == "__main__":
     main()

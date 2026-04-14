@@ -1,0 +1,109 @@
+{
+  "paths": {
+    "datasets_root": "datasets",
+    "normalized_datasets_root": "datasets/normalized_datasets",
+    "bench_root": "benchmarks/beir"
+  },
+  "globals": {
+    "dev_ratio": 0.2,
+    "seed": 42
+  },
+  "run_order": [
+    "nq",
+    "scifact",
+    "dbpedia_entity",
+    "cisi",
+    "situatedqa"
+  ],
+  "datasets": {
+    "nq": {
+      "input": {
+        "corpus": "datasets/nq/corpus.jsonl",
+        "queries": "datasets/nq/queries.jsonl",
+        "test_qrels": "datasets/nq/qrels/test.tsv"
+      },
+      "output": {
+        "corpus": "datasets/normalized_datasets/nq/corpus.jsonl",
+        "queries": "datasets/normalized_datasets/nq/queries.jsonl",
+        "test_qrels": "datasets/normalized_datasets/nq/qrels/test.tsv"
+      }
+    },
+    "scifact": {
+      "input": {
+        "corpus": "datasets/scifact/corpus.jsonl",
+        "queries": "datasets/scifact/queries.jsonl",
+        "source_dev_qrels": "datasets/scifact/qrels/test.tsv",
+        "source_test_qrels": "datasets/scifact/qrels/train.tsv"
+      },
+      "output": {
+        "corpus": "datasets/normalized_datasets/scifact/corpus.jsonl",
+        "queries": "datasets/normalized_datasets/scifact/queries.jsonl",
+        "test_qrels": "datasets/normalized_datasets/scifact/qrels/test.tsv"
+      }
+    },
+    "dbpedia_entity": {
+      "input": {
+        "corpus": "datasets/dbpedia-entity/corpus.jsonl",
+        "queries": "datasets/dbpedia-entity/queries.jsonl",
+        "dev_qrels": "datasets/dbpedia-entity/qrels/dev.tsv",
+        "test_qrels": "datasets/dbpedia-entity/qrels/test.tsv"
+      },
+      "output": {
+        "corpus": "datasets/normalized_datasets/dbpedia-entity/corpus.jsonl",
+        "queries": "datasets/normalized_datasets/dbpedia-entity/queries.jsonl",
+        "test_qrels": "datasets/normalized_datasets/dbpedia-entity/qrels/test.tsv"
+      }
+    },
+    "cisi": {
+      "input": {
+        "corpus_source": "datasets/cisi/CISI.ALL",
+        "queries_source": "datasets/cisi/CISI.QRY",
+        "qrels_source": "datasets/cisi/CISI.REL"
+      },
+      "output": {
+        "corpus": "datasets/normalized_datasets/cisi/corpus.jsonl",
+        "queries": "datasets/normalized_datasets/cisi/queries.jsonl",
+        "edges": "datasets/normalized_datasets/cisi/edges.jsonl",
+        "test_qrels": "datasets/normalized_datasets/cisi/qrels/test.tsv"
+      }
+    },
+    "situatedqa": {
+      "input": {
+        "geo_train": "datasets/situatedQA/qa_data/geo.train.jsonl",
+        "geo_dev": "datasets/situatedQA/qa_data/geo.dev.jsonl",
+        "geo_test": "datasets/situatedQA/qa_data/geo.test.jsonl",
+        "temp_train": "datasets/situatedQA/qa_data/temp.train.jsonl",
+        "temp_dev": "datasets/situatedQA/qa_data/temp.dev.jsonl",
+        "temp_test": "datasets/situatedQA/qa_data/temp.test.jsonl"
+      },
+      "output": {
+        "geo_corpus": "datasets/normalized_datasets/situatedqa-geo/corpus.jsonl",
+        "geo_queries": "datasets/normalized_datasets/situatedqa-geo/queries.jsonl",
+        "geo_test_qrels": "datasets/normalized_datasets/situatedqa-geo/qrels/test.tsv",
+        "temp_corpus": "datasets/normalized_datasets/situatedqa-temp/corpus.jsonl",
+        "temp_queries": "datasets/normalized_datasets/situatedqa-temp/queries.jsonl",
+        "temp_test_qrels": "datasets/normalized_datasets/situatedqa-temp/qrels/test.tsv"
+      }
+    }
+  },
+  "beir_datasets": {
+    "cisi": {
+      "dir": "datasets/normalized_datasets/cisi"
+    },
+    "dbpedia-entity": {
+      "dir": "datasets/normalized_datasets/dbpedia-entity"
+    },
+    "nq": {
+      "dir": "datasets/normalized_datasets/nq"
+    },
+    "scifact": {
+      "dir": "datasets/normalized_datasets/scifact"
+    },
+    "situatedqa-geo": {
+      "dir": "datasets/normalized_datasets/situatedqa-geo"
+    },
+    "situatedqa-temp": {
+      "dir": "datasets/normalized_datasets/situatedqa-temp"
+    }
+  }
+}
