@@ -93,8 +93,6 @@ def main() -> None:
     write_jsonl(cfg["output"]["corpus"], corpus)
     write_jsonl(cfg["output"]["queries"], queries)
     write_jsonl(cfg["output"]["edges"], edges)
-    if cfg["output"]["dev_qrels"].exists():
-        cfg["output"]["dev_qrels"].unlink()
     write_qrels(cfg["output"]["test_qrels"], test_qrels)
 
 if __name__ == "__main__":
