@@ -1,0 +1,2 @@
+beir==2.2.0
+sentence-transformers==5.2.3
