@@ -140,7 +140,13 @@ def main():
     results = retriever.retrieve(corpus, queries)
     results = {qid: docs for qid, docs in results.items() if qid in qrels}
 
-    ndcg, _map, recall, precision = retriever.evaluate(qrels, results, retriever.k_values)
+    ignore_identical = not args.dataset.startswith("situatedqa-")
+    ndcg, _map, recall, precision = retriever.evaluate(
+        qrels,
+        results,
+        retriever.k_values,
+        ignore_identical_ids=ignore_identical,
+    )
     mrr = retriever.evaluate_custom(qrels, results, retriever.k_values, metric="mrr")
 
     run_dir = BENCH_ROOT / "runs" / "sparse" / args.backend / args.dataset

@@ -20,7 +20,7 @@ __pycache__/
 /benchmarks/pyserini/logs
 /benchmarks/pyserini/prepared
 /benchmarks/pyserini/results
-/benchmarks/pyserini/
+/benchmarks/pyserini/runs
 *.ps1
 demo.py
 tools/

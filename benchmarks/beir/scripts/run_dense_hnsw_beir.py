@@ -165,7 +165,13 @@ def main():
     raw_results = hnsw_search(index, query_embeddings, doc_ids, args.top_k)
     results = {query_ids[row_idx]: docs for row_idx, docs in raw_results.items() if query_ids[row_idx] in qrels}
 
-    ndcg, _map, recall, precision = evaluator.evaluate(qrels, results, evaluator.k_values)
+    ignore_identical = not args.dataset.startswith("situatedqa-")
+    ndcg, _map, recall, precision = evaluator.evaluate(
+        qrels,
+        results,
+        evaluator.k_values,
+        ignore_identical_ids=ignore_identical,
+    )
     mrr = evaluator.evaluate_custom(qrels, results, evaluator.k_values, metric="mrr")
 
     run_dir = BENCH_ROOT / "runs" / "dense_hnsw" / args.backend / args.dataset
