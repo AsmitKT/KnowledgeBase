@@ -50,8 +50,21 @@ def load_qrels(path):
 def load_dataset(config,dataset_name):
     beir=config['beir_datasets'][dataset_name]
     dir_path=beir['dir']
-    corpus=load_jsonl(os.path.join(dir_path,'corpus.jsonl'))
-    queries=load_jsonl(os.path.join(dir_path,'queries.jsonl'))
+
+    print(f"[data] loading dataset={dataset_name}")
+    print(f"[data] base={dir_path}")
+
+    corpus_path=os.path.join(dir_path,'corpus.jsonl')
+    queries_path=os.path.join(dir_path,'queries.jsonl')
     qrels_path=os.path.join(dir_path,'qrels','test.tsv')
+
+    corpus=load_jsonl(corpus_path)
+    print(f"[data] corpus loaded: {len(corpus)} rows")
+
+    queries=load_jsonl(queries_path)
+    print(f"[data] queries loaded: {len(queries)} rows")
+
     qrels=load_qrels(qrels_path)
+    print(f"[data] qrels loaded: {len(qrels)} queries")
+
     return corpus,queries,qrels
