@@ -24,3 +24,4 @@ __pycache__/
 *.ps1
 demo.py
 tools/
+artifacts/

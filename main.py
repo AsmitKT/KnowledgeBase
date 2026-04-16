@@ -7,7 +7,6 @@ def main():
     p.add_argument('--mode')
     p.add_argument('--dataset',required=True)
     p.add_argument('--query')
-    p.add_argument('--split',default='test')
     p.add_argument('--top_k',type=int,default=10)
     a=p.parse_args()
     cfg=load_config()
@@ -20,7 +19,7 @@ def main():
         for doc_id,score in res:
             print(f"{doc_id}\t{score}")
     elif a.mode=='eval':
-        m=evaluate(cfg,a.dataset,a.split,a.top_k)
+        m=evaluate(cfg,a.dataset,a.top_k)
         for k,v in m.items():
             print(f"{k}\t{v}")
     else:
