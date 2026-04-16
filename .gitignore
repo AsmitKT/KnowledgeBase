@@ -24,3 +24,5 @@ __pycache__/
 *.ps1
 demo.py
 tools/
+hybrid/
+main.py

@@ -60,6 +60,7 @@ def main():
         size_percent=args.size,
         fix_qrels_headers=False,
         seed=DEFAULT_RANDOM_SEED,
+        separate_query_ids=args.dataset.startswith("situatedqa-"),
     )
 
     model = build_model(args.backend, model_name, args.batch_size)
