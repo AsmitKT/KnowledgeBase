@@ -11,8 +11,6 @@ class BM25:
         return re.findall(r'\b\w+\b',str(text or "").lower())
 
     def build(self,corpus):
-        print(f"[bm25] building index for {len(corpus)} documents")
-
         self.doc_len={}
         self.avg_len=0.0
         self.df={}
@@ -40,16 +38,11 @@ class BM25:
                     self.df[t]=self.df.get(t,0)+1
                     seen.add(t)
 
-            if idx % 200 == 0 or idx == len(corpus):
-                print(f"[bm25] processed {idx}/{len(corpus)} documents")
-
         self.N=valid_docs
         if self.N:
             self.avg_len/=self.N
         else:
             self.avg_len=1.0
-
-        print(f"[bm25] build complete | docs={self.N} | vocab={len(self.df)} | avg_len={self.avg_len:.2f}")
 
     def idf(self,term):
         df=self.df.get(term,0)
@@ -70,8 +63,6 @@ class BM25:
         return s
 
     def retrieve(self,query_text,top_k):
-        print(f"[bm25] retrieving | top_k={top_k}")
-
         terms=self.tokenize(query_text)
         candidate_docs=set()
 
@@ -86,6 +77,4 @@ class BM25:
             scores.append((doc_id,s))
 
         scores.sort(key=lambda x:x[1],reverse=True)
-
-        print(f"[bm25] retrieval complete | query_terms={len(terms)} | candidates={len(candidate_docs)} | returned={min(top_k,len(scores))}")
         return scores[:top_k]

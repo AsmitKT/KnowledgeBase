@@ -133,8 +133,6 @@ class GraphANN:
         self._prune_neighbors_for_node(node_idx,level)
 
     def build(self,doc_ids,embeddings):
-        print(f"[ann] building hierarchical graph | nodes={len(doc_ids)} | m={self.m} | ef_construction={self.ef_construction}")
-
         self.doc_ids=[str(x) for x in doc_ids]
         self.embeddings=self._normalize_embeddings(embeddings)
         self.id_to_index={doc_id:i for i,doc_id in enumerate(self.doc_ids)}
@@ -178,16 +176,9 @@ class GraphANN:
                     self.entry_point=idx
                     self.max_level=level
 
-            if (idx+1)%100==0 or (idx+1)==len(self.doc_ids):
-                print(f"[ann] inserted {idx+1}/{len(self.doc_ids)} nodes | current_max_level={self.max_level}")
-
-        print(f"[ann] build complete | layers={self.max_level+1} | entry_point={self.entry_point}")
-
     def search(self,query_vector,seeds,top_k):
         if self.embeddings is None or len(self.doc_ids)==0:
             return []
-
-        print(f"[ann] searching | top_k={top_k} | ef_search={self.ef_search} | seeds={len(seeds) if seeds else 0}")
 
         if not isinstance(query_vector,torch.Tensor):
             query_vector=torch.tensor(query_vector,dtype=torch.float32)
@@ -214,6 +205,4 @@ class GraphANN:
         ordered=self._search_layer(query_vector,entry_points,0,max(top_k,self.ef_search))
         pairs=[(self.doc_ids[idx],self._similarity(query_vector,idx)) for idx in ordered]
         pairs.sort(key=lambda x:x[1],reverse=True)
-
-        print(f"[ann] search complete | returned={min(top_k,len(pairs))}")
         return pairs[:top_k]
