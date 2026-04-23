@@ -21,7 +21,9 @@ __pycache__/
 /benchmarks/pyserini/prepared
 /benchmarks/pyserini/results
 /benchmarks/pyserini/runs
-*.ps1
+/*.ps1
+runn.ps1
 demo.py
 tools/
 artifacts/
+artifacts_xpu_local/
