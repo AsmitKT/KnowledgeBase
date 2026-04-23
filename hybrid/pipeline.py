@@ -8,18 +8,19 @@ from .ann import GraphANN
 from .metadata import MetadataScorer, build_query_text
 from .fusion import rrf_fuse
 from .metrics import compute_metrics
+from .progress import TerminalProgressBar
 
 def build_indexes(config,dataset_name):
-    print(f"[pipeline] build start | dataset={dataset_name}")
-
-    corpus,_,_=load_dataset(config,dataset_name)
+    bar=TerminalProgressBar(5,label=f"build {dataset_name}")
+    bar.update(0,message="loading dataset")
+    corpus,_,_=load_dataset(config,dataset_name,verbose=False)
     ensure_artifacts_dirs(config)
 
-    print("[pipeline] step 1/4 | BM25 build")
+    bar.update(1,message="building BM25")
     bm=BM25(config['hybrid']['bm25']['k1'],config['hybrid']['bm25']['b'])
     bm.build(corpus)
 
-    print("[pipeline] step 2/4 | dense build")
+    bar.update(2,message="building dense")
     dr=DenseRetrieval(
         config['hybrid']['dense']['model_name'],
         config['hybrid']['dense']['batch_size'],
@@ -27,7 +28,7 @@ def build_indexes(config,dataset_name):
     )
     dr.build(corpus)
 
-    print("[pipeline] step 3/4 | ANN build")
+    bar.update(3,message="building ANN")
     ann=GraphANN(
         m=config['hybrid']['ann']['m'],
         ef_construction=config['hybrid']['ann'].get('ef_construction',64),
@@ -36,28 +37,24 @@ def build_indexes(config,dataset_name):
     )
     ann.build(dr.doc_ids,dr.embeddings)
 
-    print("[pipeline] step 4/4 | saving artifacts")
+    bar.update(4,message="saving artifacts")
     art=config['hybrid']['artifacts_root']
     prefix=os.path.join(art,dataset_name)
     os.makedirs(prefix,exist_ok=True)
 
     with open(os.path.join(prefix,'bm25.pkl'),'wb') as f:
         pickle.dump(bm,f)
-    print("[pipeline] saved bm25.pkl")
 
     with open(os.path.join(prefix,'dense.pkl'),'wb') as f:
         pickle.dump(dr,f)
-    print("[pipeline] saved dense.pkl")
 
     with open(os.path.join(prefix,'ann.pkl'),'wb') as f:
         pickle.dump(ann,f)
-    print("[pipeline] saved ann.pkl")
 
     with open(os.path.join(prefix,'corpus.pkl'),'wb') as f:
         pickle.dump(corpus,f)
-    print("[pipeline] saved corpus.pkl")
 
-    print(f"[pipeline] build complete | dataset={dataset_name}")
+    bar.finish("complete")
 
 def load_indexes(config,dataset_name):
     art=config['hybrid']['artifacts_root']
@@ -83,14 +80,22 @@ def _prepare_query_text(query_text,query_metadata=None):
         return build_query_text(query_obj,include_metadata=True)
     return query_text
 
-def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k):
+def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k,progress=None):
     meta=MetadataScorer()
 
+    if progress is not None:
+        progress.update(1,message="BM25 retrieve")
     bm_res=bm.retrieve(query_text,top_k*5)
+
+    if progress is not None:
+        progress.update(2,message="dense retrieve")
     dense_res=dr.query(query_text,top_k*5)
 
     seeds=[doc_id for doc_id,_ in bm_res]
     q_emb=dr.encode_texts([query_text])[0]
+
+    if progress is not None:
+        progress.update(3,message="ANN retrieve")
     ann_res=ann.search(q_emb,seeds,top_k*5)
 
     meta_scores={}
@@ -101,6 +106,8 @@ def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k):
         doc_id=str(raw_doc_id)
         meta_scores[doc_id]=meta.score(query_text,doc.get('metadata',{}))
 
+    if progress is not None:
+        progress.update(4,message="metadata score")
     meta_list=sorted(meta_scores.items(),key=lambda x:x[1],reverse=True)[:top_k*5]
 
     lists={
@@ -117,32 +124,35 @@ def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k):
         'meta':config['hybrid']['fusion']['metadata_weight']
     }
 
+    if progress is not None:
+        progress.update(5,message="fusion")
     return rrf_fuse(lists,weights,config['hybrid']['fusion']['rrf_k'],top_k)
 
 def search_query(config,dataset_name,query_text,top_k,query_metadata=None):
     final_query_text=_prepare_query_text(query_text,query_metadata)
+    bar=TerminalProgressBar(5,label=f"search {dataset_name}")
+    bar.update(0,message="loading indexes")
     bm,dr,ann,corpus=load_indexes(config,dataset_name)
-    return _run_search_with_indexes(config,bm,dr,ann,corpus,final_query_text,top_k)
+    results=_run_search_with_indexes(config,bm,dr,ann,corpus,final_query_text,top_k,progress=bar)
+    bar.finish("complete")
+    return results
 
 def evaluate(config,dataset_name,top_k):
-    print(f"[pipeline] eval start | dataset={dataset_name} | top_k={top_k}")
-
-    _,queries,qrels=load_dataset(config,dataset_name)
+    _,queries,qrels=load_dataset(config,dataset_name,verbose=False)
     bm,dr,ann,corpus=load_indexes(config,dataset_name)
 
     run={}
     total_queries=len(queries)
+    bar=TerminalProgressBar(total_queries,label=f"eval {dataset_name}")
+    bar.update(0,message=f"query 0/{total_queries}")
 
     for idx,q in enumerate(queries,1):
         qid=str(q.get('id') or q.get('query_id') or q.get('_id'))
         query_text=build_query_text(q,include_metadata=True)
-
-        if idx == 1 or idx == total_queries or idx % 25 == 0:
-            print(f"[pipeline] eval progress {idx}/{total_queries} | qid={qid}")
-
         res=_run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k)
         run[qid]=[doc_id for doc_id,_ in res]
+        bar.update(idx,message=f"query {idx}/{total_queries} | qid={qid}")
 
     metrics=compute_metrics(run,qrels,top_k)
-    print(f"[pipeline] eval complete | metrics={metrics}")
+    bar.finish("complete")
     return metrics
