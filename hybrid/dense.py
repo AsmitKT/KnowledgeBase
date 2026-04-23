@@ -1,6 +1,24 @@
+import os
 import torch
 from transformers import AutoTokenizer,AutoModel
 from .metadata import build_document_text
+
+def _disable_external_progress():
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS","1")
+
+    try:
+        from huggingface_hub.utils import disable_progress_bars
+        disable_progress_bars()
+    except Exception:
+        pass
+
+    try:
+        from transformers.utils import logging as transformers_logging
+        fn=getattr(transformers_logging,"disable_progress_bar",None)
+        if callable(fn):
+            fn()
+    except Exception:
+        pass
 
 class DenseRetrieval:
     def __init__(self,model_name,batch_size=16,device=None,normalize=True):
@@ -8,6 +26,8 @@ class DenseRetrieval:
         self.batch_size=batch_size
         self.device=device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.normalize=normalize
+
+        _disable_external_progress()
 
         self.tokenizer=AutoTokenizer.from_pretrained(self.model_name,use_fast=True)
         self.model=AutoModel.from_pretrained(self.model_name)
@@ -17,11 +37,15 @@ class DenseRetrieval:
         self.embeddings=None
         self.doc_ids=None
 
-    def encode_texts(self,texts,prefix="dense"):
+    def encode_texts(self,texts,prefix="dense",progress_callback=None):
+        if not texts:
+            return torch.empty((0,0),dtype=torch.float32)
+
         all_emb=[]
         total=len(texts)
+        total_batches=(total+self.batch_size-1)//self.batch_size
 
-        for i in range(0,total,self.batch_size):
+        for batch_idx,i in enumerate(range(0,total,self.batch_size),start=1):
             batch=texts[i:i+self.batch_size]
             enc=self.tokenizer(batch,return_tensors='pt',padding=True,truncation=True)
 
@@ -38,9 +62,12 @@ class DenseRetrieval:
 
             all_emb.append(emb)
 
+            if progress_callback is not None:
+                progress_callback(batch_idx,total_batches,prefix)
+
         return torch.cat(all_emb,dim=0)
 
-    def build(self,corpus):
+    def build(self,corpus,progress_callback=None):
         texts=[]
         ids=[]
 
@@ -52,7 +79,7 @@ class DenseRetrieval:
             texts.append(build_document_text(doc,include_metadata=True))
 
         self.doc_ids=ids
-        self.embeddings=self.encode_texts(texts,prefix="dense-build")
+        self.embeddings=self.encode_texts(texts,prefix="dense-build",progress_callback=progress_callback)
 
     def query(self,query_text,top_k):
         q_emb=self.encode_texts([query_text],prefix="dense-query")[0]

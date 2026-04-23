@@ -17,10 +17,19 @@ def _artifact_dataset_name(dataset_name,size_percent):
     size_str=size_str.replace('.','p')
     return f"{dataset_name}__size_{size_str}"
 
+def _count_valid_docs(corpus):
+    count=0
+    for doc in corpus:
+        raw_doc_id=doc.get('id') or doc.get('doc_id') or doc.get('_id')
+        if raw_doc_id is not None:
+            count+=1
+    return count
+
 def build_indexes(config,dataset_name,size_percent=100.0):
     bar=TerminalProgressBar(5,label=f"build {dataset_name}")
     bar.update(0,message="loading dataset")
-    corpus,_,_,meta=load_dataset(
+
+    corpus,_,_,_=load_dataset(
         config,
         dataset_name,
         verbose=False,
@@ -29,19 +38,33 @@ def build_indexes(config,dataset_name,size_percent=100.0):
     )
     ensure_artifacts_dirs(config)
 
+    dense_batch_size=max(1,int(config['hybrid']['dense']['batch_size']))
+    valid_docs=_count_valid_docs(corpus)
+    dense_batches=max(1,(valid_docs+dense_batch_size-1)//dense_batch_size)
+    total_steps=5+dense_batches
+    bar.set_total(total_steps)
+
     bar.update(1,message="building BM25")
     bm=BM25(config['hybrid']['bm25']['k1'],config['hybrid']['bm25']['b'])
     bm.build(corpus)
 
-    bar.update(2,message="building dense")
+    bar.update(2,message="loading dense model")
+    bar.clear()
+
     dr=DenseRetrieval(
         config['hybrid']['dense']['model_name'],
         config['hybrid']['dense']['batch_size'],
         normalize=config['hybrid']['dense']['normalize']
     )
-    dr.build(corpus)
 
-    bar.update(3,message="building ANN")
+    bar.update(2,message=f"encoding dense 0/{dense_batches}")
+
+    def on_dense_progress(batch_idx,total_batches,_prefix):
+        bar.update(2+batch_idx,message=f"encoding dense {batch_idx}/{total_batches}")
+
+    dr.build(corpus,progress_callback=on_dense_progress)
+
+    bar.update(3+dense_batches,message="building ANN")
     ann=GraphANN(
         m=config['hybrid']['ann']['m'],
         ef_construction=config['hybrid']['ann'].get('ef_construction',64),
@@ -50,7 +73,7 @@ def build_indexes(config,dataset_name,size_percent=100.0):
     )
     ann.build(dr.doc_ids,dr.embeddings)
 
-    bar.update(4,message="saving artifacts")
+    bar.update(4+dense_batches,message="saving artifacts")
     art=config['hybrid']['artifacts_root']
     dataset_artifact_name=_artifact_dataset_name(dataset_name,size_percent)
     prefix=os.path.join(art,dataset_artifact_name)
@@ -67,9 +90,6 @@ def build_indexes(config,dataset_name,size_percent=100.0):
 
     with open(os.path.join(prefix,'corpus.pkl'),'wb') as f:
         pickle.dump(corpus,f)
-
-    with open(os.path.join(prefix,'build_meta.pkl'),'wb') as f:
-        pickle.dump(meta,f)
 
     bar.finish("complete")
 
