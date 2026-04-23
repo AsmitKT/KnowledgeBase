@@ -1,8 +1,25 @@
 import argparse
+import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from config_paths import DATASETS, get_index_path, get_prepared_paths, get_run_path
+
+def build_subprocess_env():
+    env = os.environ.copy()
+
+    java_home = env.get("JAVA_HOME", "").strip()
+    if java_home:
+        java_home = str(Path(java_home).expanduser().resolve())
+        env["JAVA_HOME"] = java_home
+        env["JDK_HOME"] = java_home
+        java_bin = str(Path(java_home) / "bin")
+        env["PATH"] = java_bin + os.pathsep + env.get("PATH", "")
+
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    return env
 
 def main():
     parser = argparse.ArgumentParser()
@@ -28,9 +45,12 @@ def main():
     if args.reindex and index_path.exists():
         shutil.rmtree(index_path)
 
+    env = build_subprocess_env()
+
     if args.reindex or not index_path.exists():
         index_cmd = [
             sys.executable,
+            "-X", "utf8",
             "-m",
             "pyserini.index.lucene",
             "--collection", "JsonCollection",
@@ -42,10 +62,11 @@ def main():
             "--storeDocvectors",
             "--storeRaw",
         ]
-        subprocess.run(index_cmd, check=True)
+        subprocess.run(index_cmd, check=True, env=env)
 
     search_cmd = [
         sys.executable,
+        "-X", "utf8",
         "-m",
         "pyserini.search.lucene",
         "--index", str(index_path),
@@ -58,7 +79,7 @@ def main():
         "--k1", str(args.k1),
         "--b", str(args.b),
     ]
-    subprocess.run(search_cmd, check=True)
+    subprocess.run(search_cmd, check=True, env=env)
 
 if __name__ == "__main__":
     main()

@@ -27,3 +27,5 @@ demo.py
 tools/
 artifacts/
 artifacts_xpu_local/
+app.py
+graph.py
