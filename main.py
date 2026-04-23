@@ -8,6 +8,7 @@ def main():
     p.add_argument('--dataset',required=True)
     p.add_argument('--query')
     p.add_argument('--top_k',type=int,default=10)
+    p.add_argument('--size',type=float,default=100.0)
     p.add_argument('--location')
     p.add_argument('--date')
     p.add_argument('--date_type')
@@ -17,7 +18,7 @@ def main():
     cfg=load_config()
 
     if a.mode=='build':
-        build_indexes(cfg,a.dataset)
+        build_indexes(cfg,a.dataset,size_percent=a.size)
     elif a.mode=='search':
         if not a.query:
             print('search mode requires --query')
@@ -38,13 +39,14 @@ def main():
             a.dataset,
             a.query,
             a.top_k,
-            query_metadata=query_metadata if query_metadata else None
+            query_metadata=query_metadata if query_metadata else None,
+            size_percent=a.size
         )
 
         for doc_id,score in res:
             print(f"{doc_id}\t{score}")
     elif a.mode=='eval':
-        m=evaluate(cfg,a.dataset,a.top_k)
+        m=evaluate(cfg,a.dataset,a.top_k,size_percent=a.size)
         for k,v in m.items():
             print(f"{k}\t{v}")
 
