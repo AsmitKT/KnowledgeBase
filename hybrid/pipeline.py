@@ -10,10 +10,23 @@ from .fusion import rrf_fuse
 from .metrics import compute_metrics
 from .progress import TerminalProgressBar
 
-def build_indexes(config,dataset_name):
+def _artifact_dataset_name(dataset_name,size_percent):
+    if float(size_percent)>=100.0:
+        return dataset_name
+    size_str=f"{float(size_percent):.4f}".rstrip('0').rstrip('.')
+    size_str=size_str.replace('.','p')
+    return f"{dataset_name}__size_{size_str}"
+
+def build_indexes(config,dataset_name,size_percent=100.0):
     bar=TerminalProgressBar(5,label=f"build {dataset_name}")
     bar.update(0,message="loading dataset")
-    corpus,_,_=load_dataset(config,dataset_name,verbose=False)
+    corpus,_,_,meta=load_dataset(
+        config,
+        dataset_name,
+        verbose=False,
+        size_percent=size_percent,
+        seed=config['globals'].get('seed',42)
+    )
     ensure_artifacts_dirs(config)
 
     bar.update(1,message="building BM25")
@@ -39,7 +52,8 @@ def build_indexes(config,dataset_name):
 
     bar.update(4,message="saving artifacts")
     art=config['hybrid']['artifacts_root']
-    prefix=os.path.join(art,dataset_name)
+    dataset_artifact_name=_artifact_dataset_name(dataset_name,size_percent)
+    prefix=os.path.join(art,dataset_artifact_name)
     os.makedirs(prefix,exist_ok=True)
 
     with open(os.path.join(prefix,'bm25.pkl'),'wb') as f:
@@ -54,11 +68,15 @@ def build_indexes(config,dataset_name):
     with open(os.path.join(prefix,'corpus.pkl'),'wb') as f:
         pickle.dump(corpus,f)
 
+    with open(os.path.join(prefix,'build_meta.pkl'),'wb') as f:
+        pickle.dump(meta,f)
+
     bar.finish("complete")
 
-def load_indexes(config,dataset_name):
+def load_indexes(config,dataset_name,size_percent=100.0):
     art=config['hybrid']['artifacts_root']
-    prefix=os.path.join(art,dataset_name)
+    dataset_artifact_name=_artifact_dataset_name(dataset_name,size_percent)
+    prefix=os.path.join(art,dataset_artifact_name)
 
     with open(os.path.join(prefix,'bm25.pkl'),'rb') as f:
         bm=pickle.load(f)
@@ -128,18 +146,24 @@ def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k,progress=N
         progress.update(5,message="fusion")
     return rrf_fuse(lists,weights,config['hybrid']['fusion']['rrf_k'],top_k)
 
-def search_query(config,dataset_name,query_text,top_k,query_metadata=None):
+def search_query(config,dataset_name,query_text,top_k,query_metadata=None,size_percent=100.0):
     final_query_text=_prepare_query_text(query_text,query_metadata)
     bar=TerminalProgressBar(5,label=f"search {dataset_name}")
     bar.update(0,message="loading indexes")
-    bm,dr,ann,corpus=load_indexes(config,dataset_name)
+    bm,dr,ann,corpus=load_indexes(config,dataset_name,size_percent=size_percent)
     results=_run_search_with_indexes(config,bm,dr,ann,corpus,final_query_text,top_k,progress=bar)
     bar.finish("complete")
     return results
 
-def evaluate(config,dataset_name,top_k):
-    _,queries,qrels=load_dataset(config,dataset_name,verbose=False)
-    bm,dr,ann,corpus=load_indexes(config,dataset_name)
+def evaluate(config,dataset_name,top_k,size_percent=100.0):
+    _,queries,qrels,_=load_dataset(
+        config,
+        dataset_name,
+        verbose=False,
+        size_percent=size_percent,
+        seed=config['globals'].get('seed',42)
+    )
+    bm,dr,ann,corpus=load_indexes(config,dataset_name,size_percent=size_percent)
 
     run={}
     total_queries=len(queries)
