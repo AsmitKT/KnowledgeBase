@@ -109,7 +109,7 @@ def load_indexes(config,dataset_name,size_percent=100.0):
 
     return bm,dr,ann,corpus
 
-def _prepare_query_text(query_text,query_metadata=None):
+def prepare_query_text(query_text,query_metadata=None):
     if query_metadata:
         query_obj={
             "text":query_text,
@@ -167,7 +167,7 @@ def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k,progress=N
     return rrf_fuse(lists,weights,config['hybrid']['fusion']['rrf_k'],top_k)
 
 def search_query(config,dataset_name,query_text,top_k,query_metadata=None,size_percent=100.0):
-    final_query_text=_prepare_query_text(query_text,query_metadata)
+    final_query_text=prepare_query_text(query_text,query_metadata)
     bar=TerminalProgressBar(5,label=f"search {dataset_name}")
     bar.update(0,message="loading indexes")
     bm,dr,ann,corpus=load_indexes(config,dataset_name,size_percent=size_percent)
