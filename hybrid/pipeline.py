@@ -109,7 +109,7 @@ def load_indexes(config,dataset_name,size_percent=100.0):
 
     return bm,dr,ann,corpus
 
-def _prepare_query_text(query_text,query_metadata=None):
+def prepare_query_text(query_text,query_metadata=None):
     if query_metadata:
         query_obj={
             "text":query_text,
@@ -167,7 +167,7 @@ def _run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k,progress=N
     return rrf_fuse(lists,weights,config['hybrid']['fusion']['rrf_k'],top_k)
 
 def search_query(config,dataset_name,query_text,top_k,query_metadata=None,size_percent=100.0):
-    final_query_text=_prepare_query_text(query_text,query_metadata)
+    final_query_text=prepare_query_text(query_text,query_metadata)
     bar=TerminalProgressBar(5,label=f"search {dataset_name}")
     bar.update(0,message="loading indexes")
     bm,dr,ann,corpus=load_indexes(config,dataset_name,size_percent=size_percent)
@@ -175,7 +175,7 @@ def search_query(config,dataset_name,query_text,top_k,query_metadata=None,size_p
     bar.finish("complete")
     return results
 
-def evaluate(config,dataset_name,top_k,size_percent=100.0):
+def evaluate_with_search_fn(config,dataset_name,top_k,search_fn,size_percent=100.0):
     _,queries,qrels,_=load_dataset(
         config,
         dataset_name,
@@ -193,10 +193,19 @@ def evaluate(config,dataset_name,top_k,size_percent=100.0):
     for idx,q in enumerate(queries,1):
         qid=str(q.get('id') or q.get('query_id') or q.get('_id'))
         query_text=build_query_text(q,include_metadata=True)
-        res=_run_search_with_indexes(config,bm,dr,ann,corpus,query_text,top_k)
+        res=search_fn(config,bm,dr,ann,corpus,query_text,top_k)
         run[qid]=[doc_id for doc_id,_ in res]
         bar.update(idx,message=f"query {idx}/{total_queries} | qid={qid}")
 
     metrics=compute_metrics(run,qrels,top_k)
     bar.finish("complete")
     return metrics
+
+def evaluate(config,dataset_name,top_k,size_percent=100.0):
+    return evaluate_with_search_fn(
+        config,
+        dataset_name,
+        top_k,
+        _run_search_with_indexes,
+        size_percent=size_percent
+    )
