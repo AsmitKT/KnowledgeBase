@@ -19,7 +19,24 @@ def _build_doc_lookup(corpus):
 def _build_dense_lookup(dr):
     return {str(doc_id):idx for idx,doc_id in enumerate(dr.doc_ids)}
 
-def _metadata_prioritize_candidates(query_text,bm_res,corpus):
+def _normalize_dense_scores(scored_items):
+    if not scored_items:
+        return []
+
+    values=[item[6] for item in scored_items]
+    min_score=min(values)
+    max_score=max(values)
+
+    if max_score==min_score:
+        return [(item[0],item[1],item[2],item[3],item[4],item[5],1.0) for item in scored_items]
+
+    normalized=[]
+    for doc_id,idx,bm25_score,normalized_bm25,metadata_score,normalized_metadata,dense_score in scored_items:
+        normalized_dense=(dense_score-min_score)/(max_score-min_score)
+        normalized.append((doc_id,idx,bm25_score,normalized_bm25,metadata_score,normalized_metadata,normalized_dense))
+    return normalized
+
+def _metadata_score_candidates(query_text,bm_res,corpus):
     if not bm_res:
         return []
 
@@ -30,39 +47,53 @@ def _metadata_prioritize_candidates(query_text,bm_res,corpus):
     if max_bm25<=0:
         max_bm25=1.0
 
-    prioritized=[]
+    raw=[]
+    max_metadata=0.0
+
     for rank,(doc_id,bm25_score) in enumerate(bm_res):
         doc_id=str(doc_id)
         doc=doc_lookup.get(doc_id,{})
-        metadata_score=meta.score(query_text,doc.get('metadata',{}))
+        metadata_score=float(meta.score(query_text,doc.get('metadata',{})))
+        if metadata_score>max_metadata:
+            max_metadata=metadata_score
         normalized_bm25=float(bm25_score)/float(max_bm25)
-        prioritized.append((doc_id,float(bm25_score),normalized_bm25,float(metadata_score),rank))
+        raw.append((doc_id,float(bm25_score),normalized_bm25,metadata_score,rank))
 
-    prioritized.sort(key=lambda x:(x[3]>0,x[3],x[2],-x[4]),reverse=True)
-    return prioritized
+    if max_metadata<=0:
+        max_metadata=1.0
+
+    scored=[]
+    for doc_id,bm25_score,normalized_bm25,metadata_score,rank in raw:
+        normalized_metadata=metadata_score/max_metadata
+        scored.append((doc_id,bm25_score,normalized_bm25,metadata_score,normalized_metadata,rank))
+
+    scored.sort(key=lambda x:(x[4]>0,x[4],x[2],-x[5]),reverse=True)
+    return scored
 
 def run_search_v2(config,bm,dr,ann,corpus,query_text,top_k,progress=None):
     bm25_pool=max(top_k*20,top_k)
     dense_pool=max(top_k*10,top_k)
-    metadata_boost=0.05
-    bm25_tie_boost=0.001
+
+    bm25_weight=0.33
+    dense_weight=0.65
+    metadata_weight=0.02
 
     if progress is not None:
         progress.update(1,message="BM25 candidate pool")
     bm_res=bm.retrieve(query_text,bm25_pool)
 
     if progress is not None:
-        progress.update(2,message="metadata prioritize")
-    prioritized=_metadata_prioritize_candidates(query_text,bm_res,corpus)
+        progress.update(2,message="metadata candidate priority")
+    candidates=_metadata_score_candidates(query_text,bm_res,corpus)
 
-    selected=prioritized[:dense_pool]
+    selected=candidates[:dense_pool]
     dense_lookup=_build_dense_lookup(dr)
 
     valid=[]
-    for doc_id,bm25_score,normalized_bm25,metadata_score,rank in selected:
+    for doc_id,bm25_score,normalized_bm25,metadata_score,normalized_metadata,rank in selected:
         idx=dense_lookup.get(doc_id)
         if idx is not None:
-            valid.append((doc_id,idx,bm25_score,normalized_bm25,metadata_score,rank))
+            valid.append((doc_id,idx,bm25_score,normalized_bm25,metadata_score,normalized_metadata,rank))
 
     if progress is not None:
         progress.update(3,message="dense rerank subset")
@@ -71,18 +102,24 @@ def run_search_v2(config,bm,dr,ann,corpus,query_text,top_k,progress=None):
         return []
 
     q_emb=dr.encode_texts([query_text])[0]
-    scored=[]
+    dense_scored=[]
 
-    for doc_id,idx,bm25_score,normalized_bm25,metadata_score,rank in valid:
+    for doc_id,idx,bm25_score,normalized_bm25,metadata_score,normalized_metadata,rank in valid:
         dense_score=float((dr.embeddings[idx]@q_emb).item())
-        final_score=dense_score+(metadata_boost*metadata_score)+(bm25_tie_boost*normalized_bm25)
-        scored.append((doc_id,final_score))
+        dense_scored.append((doc_id,idx,bm25_score,normalized_bm25,metadata_score,normalized_metadata,dense_score))
 
-    scored.sort(key=lambda x:x[1],reverse=True)
+    dense_scored=_normalize_dense_scores(dense_scored)
+
+    final=[]
+    for doc_id,idx,bm25_score,normalized_bm25,metadata_score,normalized_metadata,normalized_dense in dense_scored:
+        final_score=(bm25_weight*normalized_bm25)+(dense_weight*normalized_dense)+(metadata_weight*normalized_metadata)
+        final.append((doc_id,final_score))
+
+    final.sort(key=lambda x:x[1],reverse=True)
 
     if progress is not None:
-        progress.update(4,message="complete")
-    return scored[:top_k]
+        progress.update(4,message="weighted rerank")
+    return final[:top_k]
 
 def search_query_v2(config,dataset_name,query_text,top_k,query_metadata=None,size_percent=100.0):
     final_query_text=prepare_query_text(query_text,query_metadata)
