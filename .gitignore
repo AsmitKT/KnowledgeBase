@@ -29,3 +29,6 @@ artifacts/
 artifacts_xpu_local/
 app.py
 graph.py
+Measure-Run.ps1
+architecture_benchmark.csv
+graphs/
